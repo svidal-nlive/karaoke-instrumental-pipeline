@@ -1,10 +1,53 @@
-version: "3.9"
 services:
-  demo:
-    image: alpine
-    container_name: demo-service
-    command: ["echo", "🚀 Docker Compose is working!"]
-
   watcher:
     build: ./watcher
-    container_name: watcher
+    volumes:
+      - ./shared/downloads:/downloads:ro
+      - ./shared/pipeline:/pipeline
+
+  queue:
+    build: ./queue
+    container_name: queue
+
+  splitter:
+    build: ./splitter
+    container_name: splitter
+
+  converter:
+    build: ./converter
+    container_name: converter
+
+  combiner:
+    build: ./combiner
+    container_name: combiner
+
+  metadata:
+    build: ./metadata
+    container_name: metadata
+
+  navidrome:
+    image: deluan/navidrome:latest
+    user: "1000:1000"
+    ports:
+      - "4533:4533"
+    restart: unless-stopped
+    volumes:
+      - ./navidrome/data:/data
+      - ./shared/music:/music:ro
+
+  deemix:
+    image: bocki/deemix
+    container_name: deemix
+    volumes:
+      - ./shared/downloads:/downloads
+      - ./deemix/config:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - ARL=1234567  # Replace with your actual ARL cookie value
+    ports:
+      - "9666:9666"
+
+  testing:
+    build: ./testing
+    container_name: testing
