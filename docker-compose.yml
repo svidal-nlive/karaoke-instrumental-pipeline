@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  demo:
+    image: alpine
+    container_name: demo-service
+    command: ["echo", "🚀 Docker Compose is working!"]
+
+  watcher:
+    build: ./watcher
+    container_name: watcher
