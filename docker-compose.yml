@@ -1,13 +1,18 @@
 services:
   watcher:
     build: ./watcher
+    container_name: watcher
+    user: "${PUID}:${PGID}"
     volumes:
-      - ./shared/downloads:/downloads:ro
+      - ./shared/downloads:/downloads
       - ./shared/pipeline:/pipeline
 
   queue:
     build: ./queue
     container_name: queue
+    user: "${PUID}:${PGID}"
+    volumes:
+      - ./shared/pipeline:/pipeline
 
   splitter:
     build: ./splitter
@@ -27,6 +32,7 @@ services:
 
   navidrome:
     image: deluan/navidrome:latest
+    container_name: navidrome
     user: "1000:1000"
     ports:
       - "4533:4533"
@@ -46,7 +52,7 @@ services:
       - PGID=1000
       - ARL=1234567  # Replace with your actual ARL cookie value
     ports:
-      - "9666:9666"
+      - "6595:6595"
 
   testing:
     build: ./testing
