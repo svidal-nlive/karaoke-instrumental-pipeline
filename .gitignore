@@ -1,0 +1,20 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.env/
+venv/
+.venv/
+
+# Docker
+*.log
+*.pid
+*.pid.lock
+.env
+docker-compose.override.yml
+
+# OS-specific
+.DS_Store
+Thumbs.db
