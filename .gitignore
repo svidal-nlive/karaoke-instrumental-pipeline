@@ -18,3 +18,7 @@ docker-compose.override.yml
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Ignore config and runtime data
+deemix/config/
+navidrome/data/
