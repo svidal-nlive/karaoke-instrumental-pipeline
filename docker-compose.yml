@@ -1,11 +1,31 @@
+version: '3.7'
 services:
-  watcher:
-    build: ./watcher
-    container_name: watcher
-    user: "${PUID}:${PGID}"
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     volumes:
-      - ./shared/downloads:/downloads
-      - ./shared/pipeline:/pipeline
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
 
   queue:
     build: ./queue
@@ -13,33 +33,113 @@ services:
     user: "${PUID}:${PGID}"
     volumes:
       - ./shared/pipeline:/pipeline
+      - ./shared/originals:/originals
+    depends_on:
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+
+  watcher:
+    build: ./watcher
+    container_name: watcher
+    user: "${PUID}:${PGID}"
+    volumes:
+      - ./shared/downloads:/downloads
+      - ./shared/pipeline:/pipeline
+      - ./shared/originals:/originals
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
 
   splitter:
-    build: ./splitter
+    build:
+      context: ./splitter
+      args:
+        - PUID=${PUID}
+        - PGID=${PGID}
     container_name: splitter
+    environment:
+      - SPLEETER_MODEL_PATH=/app/pretrained_models
+    volumes:
+      - ./shared/pipeline:/pipeline
+      - ./shared/originals:/originals
+      - ./shared/splitter_output:/splitter_output
+      - ./shared/spleeter_models:/app/pretrained_models
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
 
   converter:
     build: ./converter
     container_name: converter
+    volumes:
+      - ./shared/splitter_output:/splitter_output
+      - ./shared/converted_output:/converted_output
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
 
   combiner:
-    build: ./combiner
+    build:
+      context: ./combiner
+      args:
+        - PUID=${PUID}
+        - PGID=${PGID}
     container_name: combiner
+    volumes:
+      - ./shared/pipeline:/pipeline
+      - ./shared/splitter_output:/splitter_output
+      - ./shared/music:/music
+    depends_on:
+      - converter
+      - rabbitmq
+    restart: unless-stopped
 
   metadata:
-    build: ./metadata
+    build:
+      context: ./metadata
+      args:
+        - PUID=${PUID}
+        - PGID=${PGID}
     container_name: metadata
+    volumes:
+      - ./shared/music:/music
+      - ./shared/pipeline:/pipeline
+      - ./shared/converted_output:/converted_output
+      - ./shared/splitter_output:/splitter_output
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  cleanup:
+    build:
+      context: ./cleanup
+      args:
+        - PUID=${PUID}
+        - PGID=${PGID}
+    container_name: cleanup
+    volumes:
+      - ./shared/pipeline:/pipeline
+      - ./shared/splitter_output:/splitter_output
+      - ./shared/music:/music
+      - ./shared/originals:/originals
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
 
   navidrome:
     image: deluan/navidrome:latest
     container_name: navidrome
-    user: "1000:1000"
+    user: "${PUID}:${PGID}"
     ports:
       - "4533:4533"
-    restart: unless-stopped
     volumes:
       - ./navidrome/data:/data
       - ./shared/music:/music:ro
+    restart: unless-stopped
 
   deemix:
     image: registry.gitlab.com/bockiii/deemix-docker
@@ -50,25 +150,11 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - ARL=1234567  # Replace with your actual ARL cookie value
+      - ARL=1234567
     ports:
       - "6595:6595"
-
-  testing:
-    build: ./testing
-    container_name: testing
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"     # Main AMQP port
-      - "15672:15672"   # Management UI
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+    restart: unless-stopped
 
 volumes:
   rabbitmq_data:
+  redis_data:

@@ -1,0 +1,11 @@
+pika
+spleeter==2.3.2
+tensorboard==2.11.2
+tensorboard-data-server==0.6.1
+tensorboard-plugin-wit==1.8.1
+tensorflow==2.11.0
+tensorflow-estimator==2.11.0
+tensorflow-io-gcs-filesystem==0.34.0
+numpy==1.22.4
+ffmpeg==1.4
+ffmpeg-python==0.2.0

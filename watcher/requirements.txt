@@ -1,1 +1,4 @@
 watchdog
+pika
+mutagen
+redis
