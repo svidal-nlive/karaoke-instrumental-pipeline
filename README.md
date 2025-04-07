@@ -1,44 +1,12 @@
-Below is a comprehensive **README.md** that explains the architecture, components, and usage of this “Karaoke Instrumental Pipeline” project in detail:
-
 ---
 
 # Karaoke Instrumental Pipeline
 
 A multi-service Docker-based pipeline for **automated** splitting of song audio into instrumental stems, converting them to MP3, and optionally tagging them with metadata before placing them into a music library. This pipeline leverages several containers and a message broker to orchestrate the entire workflow—from watching a downloads folder for new MP3s to automatically delivering instrumental versions to your music folder.
 
-## Table of Contents
-
-1. [Overview](#overview)
-2. [High-Level Workflow](#high-level-workflow)
-3. [Services Overview](#services-overview)
-   1. [RabbitMQ](#rabbitmq)
-   2. [Redis](#redis)
-   3. [Watcher](#watcher)
-   4. [Queue](#queue)
-   5. [Splitter](#splitter)
-   6. [Converter](#converter)
-   7. [Combiner](#combiner)
-   8. [Metadata](#metadata)
-   9. [Cleanup](#cleanup)
-   10. [Navidrome](#navidrome)
-   11. [Deemix](#deemix)
-4. [Directory Structure](#directory-structure)
-5. [Environment Variables](#environment-variables)
-6. [Docker Deployment](#docker-deployment)
-7. [Detailed Service Descriptions](#detailed-service-descriptions)
-   1. [Watcher](#detailed-watcher)
-   2. [Queue](#detailed-queue)
-   3. [Splitter](#detailed-splitter)
-   4. [Converter](#detailed-converter)
-   5. [Combiner](#detailed-combiner)
-   6. [Metadata](#detailed-metadata)
-   7. [Cleanup](#detailed-cleanup)
-8. [Additional Notes](#additional-notes)
-9. [License](#license)
-
 ---
 
-## 1. Overview
+## Overview
 
 The **Karaoke Instrumental Pipeline** automates the process of:
 
@@ -55,7 +23,7 @@ In short, drop an MP3 into a folder, and get an **instrumental** version out!
 
 ---
 
-## 2. High-Level Workflow
+## High-Level Workflow
 
 1. **Watcher** monitors a `downloads` directory for new MP3s.
    - Once a file is stable, the watcher moves it to `originals/`.
@@ -82,7 +50,7 @@ In short, drop an MP3 into a folder, and get an **instrumental** version out!
 
 ---
 
-## 3. Services Overview
+## Services Overview
 
 Below is a quick summary of the containers, each of which is defined in the **docker-compose.yml**:
 
@@ -121,7 +89,7 @@ Below is a quick summary of the containers, each of which is defined in the **do
 
 ---
 
-## 4. Directory Structure
+## Directory Structure
 
 A simplified view of the repository:
 
@@ -174,7 +142,7 @@ A simplified view of the repository:
 
 ---
 
-## 5. Environment Variables
+## Environment Variables
 
 A few important environment variables are defined in **.env**:
 
@@ -187,11 +155,11 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
 
 ---
 
-## 6. Docker Deployment
+## Docker Deployment
 
 1. **Clone** this repository and enter the project directory:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/svidal-nlive/karaoke-instrumental-pipeline.git
    cd karaoke-instrumental-pipeline
    ```
 
@@ -221,9 +189,9 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
 
 ---
 
-## 7. Detailed Service Descriptions
+## Detailed Service Descriptions
 
-### 7.1. Watcher <a id="detailed-watcher"></a>
+### Watcher <a id="detailed-watcher"></a>
 
 - **Location**: `./watcher`
 - **Listens** for filesystem events in `/downloads` (mounted from `./shared/downloads`).
@@ -233,7 +201,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   3. Moves the file to `/originals`.
   4. Computes a hash for the file, stores the metadata in Redis, and sends a job (`{"type": "track", "path": "...", "metadata_key": "..."}`) to the **splitter_jobs** queue in RabbitMQ.
 
-### 7.2. Queue <a id="detailed-queue"></a>
+### Queue <a id="detailed-queue"></a>
 
 - **Location**: `./queue`
 - **Watches** `/pipeline` for newly created files or `.job` descriptors.
@@ -242,7 +210,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   2. The queue service reads or builds that job info and sends it to **splitter_jobs** in RabbitMQ.
   3. Avoids duplicates by checking a Redis set key.
 
-### 7.3. Splitter <a id="detailed-splitter"></a>
+### Splitter <a id="detailed-splitter"></a>
 
 - **Location**: `./splitter`
 - **Listens** on `splitter_jobs`.
@@ -252,7 +220,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   2. Runs Spleeter, saving `.wav` stems into `/splitter_output/<basename-of-file>`.
   3. Filters out `vocals.wav`, gathers the rest, and sends them to `converter_jobs`.
 
-### 7.4. Converter <a id="detailed-converter"></a>
+### Converter <a id="detailed-converter"></a>
 
 - **Location**: `./converter`
 - **Listens** on `converter_jobs`.
@@ -262,7 +230,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   2. For each `.wav`, calls `ffmpeg -i <stem>.wav <stem>.mp3`.
   3. Collects the list of newly converted `.mp3` stems and forwards them to `combiner_jobs`.
 
-### 7.5. Combiner <a id="detailed-combiner"></a>
+### Combiner <a id="detailed-combiner"></a>
 
 - **Location**: `./combiner`
 - **Listens** on `combiner_jobs`.
@@ -273,7 +241,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   3. Places the final **instrumental** file in `/music`.
   4. Sends a `metadata_jobs` message to label the final track with any stored metadata.
 
-### 7.6. Metadata <a id="detailed-metadata"></a>
+### Metadata <a id="detailed-metadata"></a>
 
 - **Location**: `./metadata`
 - **Listens** on `metadata_jobs`.
@@ -283,7 +251,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
   2. Reads stored fields from `redis`, applies them to the ID3 tags.
   3. Sends `cleanup_jobs` message to remove intermediate files/folders once metadata is set.
 
-### 7.7. Cleanup <a id="detailed-cleanup"></a>
+### Cleanup <a id="detailed-cleanup"></a>
 
 - **Location**: `./cleanup`
 - **Listens** on `cleanup_jobs`.
@@ -294,7 +262,7 @@ Additional environment variables such as `REDIS_HOST`, `ARL` (for Deemix), and m
 
 ---
 
-## 8. Additional Notes
+## Additional Notes
 
 - **Navidrome** is included to serve any finished MP3 files in the `music/` directory via a web UI and REST API.
 - **Deemix** can be used to pull down tracks directly into the `downloads/` folder, automating your pipeline further.
@@ -311,12 +279,8 @@ If you place a `.mp3` in `./shared/downloads`, the **watcher** container should 
 
 ---
 
-## 9. License
+## License
 
-This project does not contain a specific open-source license by default. You can add or modify a license as you see fit. Please ensure compliance with the licenses of any third-party dependencies such as [Spleeter](https://github.com/deezer/spleeter) and `ffmpeg`.
+To be updated!
 
 ---
-
-### Enjoy your automated Karaoke Instrumental Pipeline!
-
-If you have any questions or suggestions, feel free to open an issue or submit a pull request. Happy singing!
