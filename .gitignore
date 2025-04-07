@@ -4,7 +4,6 @@ __pycache__/
 *.pyo
 
 # Virtual environments
-.env/
 venv/
 .venv/
 
@@ -15,12 +14,40 @@ venv/
 .env
 docker-compose.override.yml
 
-# OS-specific
-.DS_Store
-Thumbs.db
+# Ignore files in these directories but keep .gitkeep files
 
-# Ignore config and runtime data
-deemix/config/
-navidrome/data/
-5stems/
+# For deemix/config
+deemix/config/*
+!deemix/config/.gitkeep
+
+# For navidrome/data
+navidrome/data/*
+!navidrome/data/.gitkeep
+
+# For shared/spleeter_models
+shared/spleeter_models/*
+!shared/spleeter_models/.gitkeep
+
+# For shared/music
 shared/music/*
+!shared/music/.gitkeep
+
+# For shared/downloads
+shared/downloads/*
+!shared/downloads/.gitkeep
+
+# For shared/converted_output
+shared/converted_output/*
+!shared/converted_output/.gitkeep
+
+# For shared/originals
+shared/originals/*
+!shared/originals/.gitkeep
+
+# For shared/pipeline
+shared/pipeline/*
+!shared/pipeline/.gitkeep
+
+# For shared/splitter_output
+shared/splitter_output/*
+!shared/splitter_output/.gitkeep
