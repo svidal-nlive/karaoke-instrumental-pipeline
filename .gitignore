@@ -22,3 +22,4 @@ Thumbs.db
 # Ignore config and runtime data
 deemix/config/
 navidrome/data/
+5stems/
