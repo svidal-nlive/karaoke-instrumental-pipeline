@@ -1,4 +1,0 @@
-pika
-ffmpeg-python
-redis
-mutagen
