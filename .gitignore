@@ -13,6 +13,7 @@ venv/
 *.pid.lock
 .env
 docker-compose.override.yml
+build_and_push.sh
 
 # Ignore files in these directories but keep .gitkeep files
 
