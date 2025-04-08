@@ -1,6 +1,5 @@
 # version: '3.7'
 
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -30,7 +29,7 @@ services:
     restart: unless-stopped
 
   queue:
-    build: ./queue
+    image: nlivestudent/kip-queue:latest
     container_name: queue
     user: "${PUID}:${PGID}"
     volumes:
@@ -42,7 +41,7 @@ services:
     restart: unless-stopped
 
   watcher:
-    build: ./watcher
+    image: nlivestudent/kip-watcher:latest
     container_name: watcher
     user: "${PUID}:${PGID}"
     volumes:
@@ -54,11 +53,7 @@ services:
     restart: unless-stopped
 
   splitter:
-    build:
-      context: ./splitter
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
+    image: nlivestudent/kip-splitter:latest
     container_name: splitter
     environment:
       - SPLEETER_MODEL_PATH=/app/pretrained_models
@@ -72,7 +67,7 @@ services:
     restart: unless-stopped
 
   converter:
-    build: ./converter
+    image: nlivestudent/kip-converter:latest
     container_name: converter
     volumes:
       - ./shared/splitter_output:/splitter_output
@@ -85,11 +80,7 @@ services:
     restart: unless-stopped
 
   combiner:
-    build:
-      context: ./combiner
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
+    image: nlivestudent/kip-combiner:latest
     container_name: combiner
     volumes:
       - ./shared/pipeline:/pipeline
@@ -101,11 +92,7 @@ services:
     restart: unless-stopped
 
   metadata:
-    build:
-      context: ./metadata
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
+    image: nlivestudent/kip-metadata:latest
     container_name: metadata
     volumes:
       - ./shared/music:/music
@@ -117,11 +104,7 @@ services:
     restart: unless-stopped
 
   cleanup:
-    build:
-      context: ./cleanup
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
+    image: nlivestudent/kip-cleanup:latest
     container_name: cleanup
     volumes:
       - ./shared/pipeline:/pipeline
