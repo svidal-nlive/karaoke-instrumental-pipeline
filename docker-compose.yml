@@ -1,13 +1,12 @@
 # version: '3.7'
 
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: "${PREFIX}rabbitmq"
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     environment:
@@ -22,16 +21,16 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: "${PREFIX}redis"
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
 
   queue:
     build: ./queue
-    container_name: queue
+    container_name: "${PREFIX}queue"
     user: "${PUID}:${PGID}"
     volumes:
       - ./shared/pipeline:/pipeline
@@ -39,11 +38,14 @@ services:
     depends_on:
       - rabbitmq
       - redis
+    # Uncomment below if you wish to expose a port
+    # ports:
+    #   - "${QUEUE_PORT:-9002}:9002"
     restart: unless-stopped
 
   watcher:
     build: ./watcher
-    container_name: watcher
+    container_name: "${PREFIX}watcher"
     user: "${PUID}:${PGID}"
     volumes:
       - ./shared/downloads:/downloads
@@ -51,15 +53,13 @@ services:
       - ./shared/originals:/originals
     depends_on:
       - rabbitmq
+    # ports:
+    #   - "${WATCHER_PORT:-9001}:9001"
     restart: unless-stopped
 
   splitter:
-    build:
-      context: ./splitter
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
-    container_name: splitter
+    build: ./splitter
+    container_name: "${PREFIX}splitter"
     environment:
       - SPLEETER_MODEL_PATH=/app/pretrained_models
     volumes:
@@ -69,11 +69,13 @@ services:
       - ./shared/spleeter_models:/app/pretrained_models
     depends_on:
       - rabbitmq
+    # ports:
+    #   - "${SPLITTER_PORT:-9003}:9003"
     restart: unless-stopped
 
   converter:
     build: ./converter
-    container_name: converter
+    container_name: "${PREFIX}converter"
     volumes:
       - ./shared/splitter_output:/splitter_output
       - ./shared/converted_output:/converted_output
@@ -82,15 +84,13 @@ services:
       - PGID=${PGID}
     depends_on:
       - rabbitmq
+    # ports:
+    #   - "${CONVERTER_PORT:-9004}:9004"
     restart: unless-stopped
 
   combiner:
-    build:
-      context: ./combiner
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
-    container_name: combiner
+    build: ./combiner
+    container_name: "${PREFIX}combiner"
     volumes:
       - ./shared/pipeline:/pipeline
       - ./shared/splitter_output:/splitter_output
@@ -98,15 +98,13 @@ services:
     depends_on:
       - converter
       - rabbitmq
+    # ports:
+    #   - "${COMBINER_PORT:-9005}:9005"
     restart: unless-stopped
 
   metadata:
-    build:
-      context: ./metadata
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
-    container_name: metadata
+    build: ./metadata
+    container_name: "${PREFIX}metadata"
     volumes:
       - ./shared/music:/music
       - ./shared/pipeline:/pipeline
@@ -114,15 +112,13 @@ services:
       - ./shared/splitter_output:/splitter_output
     depends_on:
       - rabbitmq
+    # ports:
+    #   - "${METADATA_PORT:-9006}:9006"
     restart: unless-stopped
 
   cleanup:
-    build:
-      context: ./cleanup
-      args:
-        - PUID=${PUID}
-        - PGID=${PGID}
-    container_name: cleanup
+    build: ./cleanup
+    container_name: "${PREFIX}cleanup"
     volumes:
       - ./shared/pipeline:/pipeline
       - ./shared/splitter_output:/splitter_output
@@ -130,14 +126,16 @@ services:
       - ./shared/originals:/originals
     depends_on:
       - rabbitmq
+    # ports:
+    #   - "${CLEANUP_PORT:-9007}:9007"
     restart: unless-stopped
 
   navidrome:
     image: deluan/navidrome:latest
-    container_name: navidrome
+    container_name: "${PREFIX}navidrome"
     user: "${PUID}:${PGID}"
     ports:
-      - "4533:4533"
+      - "${NAVIDROME_PORT:-4533}:4533"
     volumes:
       - ./navidrome/data:/data
       - ./shared/music:/music:ro
@@ -145,16 +143,16 @@ services:
 
   deemix:
     image: registry.gitlab.com/bockiii/deemix-docker
-    container_name: deemix
+    container_name: "${PREFIX}deemix"
     volumes:
       - ./shared/downloads:/downloads
       - ./deemix/config:/config
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - ARL=1234567
     ports:
-      - "6595:6595"
+      - "${DEEMIX_PORT:-6595}:6595"
     restart: unless-stopped
 
 volumes:
